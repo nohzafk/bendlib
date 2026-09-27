@@ -10,7 +10,7 @@
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative, basename, resolve } from "node:path";
-import { BEND, PkgError, ROOT, packageModules } from "./lib.ts";
+import { BEND, PkgError, ROOT, cleanCheck, packageModules } from "./lib.ts";
 import { hubHash, packageFiles } from "./hash.ts";
 
 const USAGE = "usage: release.ts <pkgdir> <name(12-64 chars)> <a.b.c.d> [--publish]";
@@ -66,7 +66,7 @@ export async function publish(pkg: string, name: string, version: string, expect
   const probe = join(lib, "probe.bend");
   writeFileSync(probe, `import Base\nimport ${got}/all.bend as P\n`);
   const v = sh([bendBin(), probe, "--check-only"], { BEND_LIB: join(lib, "lib") });
-  if (v.out !== "All terms check.") throw new Error(`fresh-cache verification of ${got} failed:\n${v.out}`);
+  if (!cleanCheck(v.out)) throw new Error(`fresh-cache verification of ${got} failed:\n${v.out}`);
   console.log("verified from an empty cache");
 
   const link = sh([bendBin(), "link", `${name}@${version}`, got]);

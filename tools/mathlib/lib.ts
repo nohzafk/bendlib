@@ -12,6 +12,12 @@ import { homedir } from "node:os";
 export const ROOT = join(import.meta.dir, "..", "..");
 export const BEND = process.env.BEND_CLI ?? join(homedir(), ".bend", "bin", "bend");
 
+/** `bend --check-only` said clean: `All terms check.` up to 2.0.28, `ALL PROOFS CHECK` plus the `--verdict` hint from 2.0.32. */
+export function cleanCheck(out: string): boolean {
+  const t = out.trim();
+  return t === "All terms check." || /^ALL PROOFS CHECK(\nUse --verdict for mathematical validity\.)?$/.test(t);
+}
+
 export type Binder = { raw: string; name: string; mark: "" | "-" | "+" | "~"; type: string; where: boolean };
 export type Law = {
   name: string; line: number; doc: string[]; binders: Binder[]; claimLines: string[]; exs: string[];

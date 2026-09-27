@@ -569,7 +569,10 @@ function aliasMap(L: Loaded) {
   // its file path; only modules imported by absolute path need a path back-map entry (README).
   for (const [ns, { file }] of nsToAlias) if (!ns.startsWith("0x")) back.push([file.replace(/\.bend$/, "") + ".", ns + "."]);
   back.sort((a, b) => b[0].length - a[0].length);
-  const display = (s: string) => names(back.reduce((acc, [from, to]) => acc.split(from).join(to), s));
+  // From 2.0.32 the checker prints an imported name under the batch's own alias (LC1.x, U.x).
+  const aliasBack = new Map<string, string>([["U", ""], ...[...nsToAlias].map(([ns, { alias }]): [string, string] => [alias, ns + "."])]);
+  const unalias = (s: string) => s.replace(/(?<![\w.$\/])(U|LC\d+)\./g, (m, a: string) => aliasBack.get(a) ?? m);
+  const display = (s: string) => names(unalias(back.reduce((acc, [from, to]) => acc.split(from).join(to), s)));
   return { header: imports.join("\n") + "\n", qualify, display, nameOut };
 }
 
@@ -635,6 +638,13 @@ function safeRoot(file: string, tmp: string): string {
 }
 
 export class UsageError extends Error {}
+
+// bend 2.0.32 refuses an import path segment that is not a plain name, and macOS's
+// $TMPDIR (/var/folders/k1/4d2_…) has one, so harnesses that import tmp files use /tmp.
+function tmpBase(): string {
+  const t = fs.realpathSync(os.tmpdir());
+  return t.split("/").slice(1).every((seg) => /^[A-Za-z_][\w-]*$/.test(seg)) ? t : "/tmp";
+}
 
 /** Basenames of loaded non-Base files whose comment/string-stripped source has `@unsafe`. */
 function unsafeModules(L: Loaded, baseFiles: Set<string>): string[] {
@@ -796,7 +806,7 @@ async function runNative(E: Engine, src: string): Promise<string[] | string> {
 export async function lawcheck(file: string, o: Options): Promise<Report> {
   const abs = path.resolve(file);
   if (!fs.existsSync(abs)) throw new UsageError(`no such file: ${file}`);
-  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-"));
+  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(tmpBase(), "lawcheck-"));
   const root = safeRoot(rootFor(abs, o.impl, tmp), tmp);
   const L = await load(root);
   validate(L);
@@ -1257,7 +1267,7 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
     law: o.law, impl: o.impl, jobs: o.jobs, timeoutMs: o.timeoutMs, tmpDir: o.tmpDir, maxNat: o.maxNat,
     shrink: o.shrink, firstFail: o.firstFail,
   };
-  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-mut-"));
+  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(tmpBase(), "lawcheck-mut-"));
   let target: string;
   let mode: "impl" | "in-file";
   if (o.impl !== undefined) {

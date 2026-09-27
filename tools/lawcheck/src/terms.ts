@@ -7,6 +7,8 @@ type Tok = { s: string; id: boolean };
 
 const IDENT = /^[A-Za-z_0-9$][A-Za-z0-9_.$/]*/;
 const PATH = /^\/[A-Za-z0-9_.$][A-Za-z0-9_.$\/-]*/;
+// From 2.0.32 an imported file's namespace is its path relative to the root's directory.
+const REL = /^(?:\.\.\/)+[A-Za-z_$][A-Za-z0-9_.$\/-]*/;
 
 function tokens(src: string): Tok[] {
   const out: Tok[] = [];
@@ -20,11 +22,11 @@ function tokens(src: string): Tok[] {
       i = j + 1;
       continue;
     }
-    const m = (c === "/" ? PATH : IDENT).exec(src.slice(i));
+    const m = (c === "/" ? PATH : src.startsWith("../", i) ? REL : IDENT).exec(src.slice(i));
     if (m !== null) {
       let w = m[0];
       while (w.endsWith(".") || w.endsWith("/")) w = w.slice(0, -1);
-      out.push({ s: w, id: /^[A-Za-z_$/]/.test(w) || w.startsWith("0x") });
+      out.push({ s: w, id: /^[A-Za-z_$/]|^\.\.\//.test(w) || w.startsWith("0x") });
       i += w.length;
       continue;
     }
