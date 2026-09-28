@@ -9,6 +9,8 @@ import { hubHash, packageFiles } from "./hash.ts";
 import { baseNames, BEND, LOCK_FORMAT, parseLock, parseModule, packageModules, ROOT, type LockEntry } from "./lib.ts";
 import { lockAgainstErrors } from "./lock.ts";
 import { headerVersionError, loginError, publish, regenerateIndex } from "./release.ts";
+import { tmpBase } from "../lawcheck/src/lawcheck.ts";
+
 
 const dir = import.meta.dir;
 const run = (script: string, ...args: string[]) => {
@@ -354,7 +356,7 @@ test("release resolves an absolute existing pkgdir instead of mangling it", () =
 });
 
 test("release: a climbing package is a typed usage error, exit 2, no stack", () => {
-  const tmp = mkdtempSync(join(tmpdir(), "bend-release-climb-"));
+  const tmp = mkdtempSync(join(tmpBase(), "bend-release-climb-"));
   mkdirSync(join(tmp, "pkg"));
   writeFileSync(join(tmp, "other.bend"), "import Base\n\ndef other() -> U32:\n  7\n");
   writeFileSync(join(tmp, "pkg", "all.bend"), "import Base\nimport ../other.bend as Other\n\ndef f() -> U32:\n  Other.other()\n");

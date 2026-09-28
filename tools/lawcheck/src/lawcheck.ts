@@ -641,7 +641,7 @@ export class UsageError extends Error {}
 
 // bend 2.0.32 refuses an import path segment that is not a plain name, and macOS's
 // $TMPDIR (/var/folders/k1/4d2_…) has one, so harnesses that import tmp files use /tmp.
-function tmpBase(): string {
+export function tmpBase(): string {
   const t = fs.realpathSync(os.tmpdir());
   return t.split("/").slice(1).every((seg) => /^[A-Za-z_][\w-]*$/.test(seg)) ? t : "/tmp";
 }
@@ -651,6 +651,20 @@ function unsafeModules(L: Loaded, baseFiles: Set<string>): string[] {
   return L.files
     .filter((f) => !baseFiles.has(f.path) && /(^|[^\w@])@unsafe\b/.test(stripCommentsAndStrings(f.text)))
     .map((f) => path.basename(f.path));
+}
+
+// Batches import the root and local modules by absolute path; from 2.0.28 bend refuses a path
+// segment that is not a plain name (book_load's `ok`).
+function importable(L: Loaded): void {
+  const [a, b, c] = L.source.version.split(".").map(Number);
+  if (a * 1e6 + b * 1e3 + c < 2000028) return;
+  const files = [L.file, ...L.files.filter((f) => f.namespace !== "" && !f.namespace.startsWith("0x")).map((f) => f.path)];
+  for (const f of files) {
+    const bad = f.replace(/\.bend$/, "").split("/").slice(1).find((seg) => !/^[A-Za-z_][\w-]*$/.test(seg));
+    if (bad !== undefined) {
+      throw new BendReadError(`Error: bend ${L.source.version} cannot import this file, so lawcheck cannot check it: '${bad}' in its path is not a plain name (a letter or _, then letters, digits, _ or -). Move it under a path made of plain names.`, f, null, null, null);
+    }
+  }
 }
 
 /** Runs the checker's own validation so a rejected target fails loudly, never as `0 laws`. */
@@ -810,6 +824,7 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   const root = safeRoot(rootFor(abs, o.impl, tmp), tmp);
   const L = await load(root);
   validate(L);
+  importable(L);
   const own = decls(L, { scope: "own" });
   const allDecls = decls(L, { scope: "all" });
   const predicates = new Map<string, PredStmt | null>();

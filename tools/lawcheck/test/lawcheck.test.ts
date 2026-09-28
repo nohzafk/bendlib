@@ -6,7 +6,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { rewrite, splitEquation } from "../src/terms.ts";
 import { parseTy, showTy } from "../src/types.ts";
-import { predictTooLarge } from "../src/lawcheck.ts";
+import { predictTooLarge, tmpBase } from "../src/lawcheck.ts";
 
 const CLI = path.join(import.meta.dir, "..", "cli.ts");
 const FX = path.join(import.meta.dir, "fixtures");
@@ -200,7 +200,7 @@ describe("random Nat bound, list length, Type predicates, function equations", (
   }, T);
 
   test("a Type-valued predicate premise is satisfied in Unit and dropped in Empty", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-predpremise-"));
+    const dir = fs.mkdtempSync(path.join(tmpBase(), "lawcheck-predpremise-"));
     const file = path.join(dir, "root.bend");
     fs.writeFileSync(file, [
       "import Base",
@@ -227,7 +227,7 @@ describe("random Nat bound, list length, Type predicates, function equations", (
   }, T);
 
   test("a refutation whose every instance is too large is skipped, not passed", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-toolarge-"));
+    const dir = fs.mkdtempSync(path.join(tmpBase(), "lawcheck-toolarge-"));
     const file = path.join(dir, "root.bend");
     fs.writeFileSync(file, [
       "import Base",
@@ -352,7 +352,7 @@ describe("imports and --impl", () => {
       "",
     ].join("\n"));
     const writeRoot = (kind: string, importLine: string) => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), `lawcheck-hashroot-${kind}-`));
+      const dir = fs.mkdtempSync(path.join(tmpBase(), `lawcheck-hashroot-${kind}-`));
       const file = path.join(dir, "root.bend");
       fs.writeFileSync(file, [
         "import Base",
@@ -425,7 +425,7 @@ describe("imports and --impl", () => {
       "",
     ].join("\n"));
     const writeRoot = (kind: string, importLine: string) => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), `lawcheck-nested-${kind}-`));
+      const dir = fs.mkdtempSync(path.join(tmpBase(), `lawcheck-nested-${kind}-`));
       const file = path.join(dir, "root.bend");
       fs.writeFileSync(file, [
         "import Base",
@@ -473,7 +473,20 @@ describe("errors", () => {
     expect(r.code).toBe(2);
     expect(r.stdout).toBe("");
     expect(r.stderr).toContain("lawcheck: cannot load");
-    expect(r.stderr).toContain("syntax_error.bend:5:9");
+    expect(r.stderr).toContain("syntax_error.bend:5:5");
+    expect(r.stderr).not.toMatch(/\n\s+at /);
+  }, T);
+
+  test("a root under a path bend cannot import: clean located message, exit 2", async () => {
+    const dir = path.join(fs.mkdtempSync(path.join(tmpBase(), "lawcheck-unimportable-")), "4bad");
+    fs.mkdirSync(dir);
+    const file = path.join(dir, "root.bend");
+    fs.writeFileSync(file, "import Base\n\nlaw refl:\n  for n: Nat\n  {n == n : Nat}\n");
+    const r = await run(file);
+    expect(r.code).toBe(2);
+    expect(r.stdout).toBe("");
+    expect(r.stderr).toContain("lawcheck: cannot load");
+    expect(r.stderr).toContain("'4bad' in its path is not a plain name");
     expect(r.stderr).not.toMatch(/\n\s+at /);
   }, T);
 

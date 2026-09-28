@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { nativeDisagreements, nativeRepro } from "../src/lawcheck.ts";
+import { nativeDisagreements, nativeRepro, tmpBase } from "../src/lawcheck.ts";
 import { bendBin } from "../src/checker.ts";
 
 const CLI = path.join(import.meta.dir, "..", "cli.ts");
@@ -70,7 +70,7 @@ describe("engine N (--native)", () => {
   }, T);
 
   test("a harness that cannot build is reported as a skip, not silence", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-native-skip-"));
+    const dir = fs.mkdtempSync(path.join(tmpBase(), "lawcheck-native-skip-"));
     fs.writeFileSync(path.join(dir, "dep.bend"), "import Base\n\nlaw open_dep:\n  for n: Nat\n  {n == n : Nat}\n");
     fs.writeFileSync(path.join(dir, "root.bend"), "import Base\nimport ./dep.bend as D\n\nlaw uses:\n  for n: Nat\n  {n == n : Nat}\n");
     const r = await run(path.join(dir, "root.bend"), "--native", "--jobs", "4", "--max-instances", "4", "--json");
