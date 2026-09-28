@@ -1,5 +1,5 @@
 // Checker-output classification. The strings are verbatim outputs of
-// `bend <file> --check-only` on 2.0.27 for hub files (named in each test).
+// `bend <file> --check-only` on 2.0.27 or 2.0.32 for the files named in each test.
 
 import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -24,6 +24,23 @@ describe("classify", () => {
   test("singular form (0x527a2a4f…/lib.bend)", () => {
     const s = classify("All terms check, but 1 def relies on unsafe or foreign code:\n- das_dennis_m1\n", 0, false, 1);
     expect(s.unsafeDefs).toEqual(["das_dennis_m1"]);
+  });
+  test("2.0.32: the clean verdict with its --verdict hint is checks (lawcheck fixtures/lib_ok.bend)", () => {
+    const s = classify("ALL PROOFS CHECK\nUse --verdict for mathematical validity.\n", 0, false, 1);
+    expect(s.class).toBe("checks");
+    expect(s.summary).toBe("ALL PROOFS CHECK");
+    expect(classify("ALL PROOFS CHECK\nUse --verdict for mathematical validity.\n", 1, false, 1).class).toBe("fails");
+  });
+  test("2.0.32: the unsafe verdict exits 1 and lists its defs (lawcheck fixtures/unsafe_pass.bend)", () => {
+    const s = classify("SOME PROOFS FAIL\nError: 2 defs rely on unsafe or foreign code:\n- zero\n- zero_is_zero\n", 1, false, 1);
+    expect(s.class).toBe("unsafe");
+    expect(s.unsafeDefs).toEqual(["zero", "zero_is_zero"]);
+    expect(s.summary).toBe("2 defs rely on unsafe or foreign code");
+  });
+  test("2.0.32: TODOs after SOME PROOFS FAIL are open laws (lawcheck fixtures/correct.bend)", () => {
+    const s = classify("SOME PROOFS FAIL\nError: 4 TODOs found.\nThe code is incomplete, and not a valid proof yet.\n", 1, false, 1);
+    expect(s.class).toBe("open");
+    expect(s.summary).toBe("4 TODOs found.");
   });
   test("TODOs are open laws (0xf5a52e74…/src/LAWS.bend)", () => {
     const s = classify("Error: 5 TODOs found.\nThe code is incomplete, and not a valid proof yet.\n", 1, false, 1);

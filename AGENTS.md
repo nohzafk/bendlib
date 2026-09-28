@@ -150,7 +150,7 @@ their expected output, and what not to do. Read the whole bead before starting.
    Beads labelled `owner` need contact with people or a purchase: never start them. Beads labelled
    `release` publish to BendHub, `bend link`, tag or create GitHub releases: take them only when
    every dependency is closed and the full gate is green on `origin/main` (PLAN §9 D-release). `br show <id>`, then `br update <id> --status in_progress`.
-2. Environment: `~/.bend/bin/bend version` must print `bend 2.0.27` (else `bun tools/install-bend.ts`).
+2. Environment: `~/.bend/bin/bend version` must print `bend 2.0.32` (else `bun tools/install-bend.ts`).
    Run commands from the repository root. For Bend itself: `bend guide`, `bend base <Name>` (e.g.
    `bend base List`), and `~/.claude/skills/bend2-mega-skill/references/` (`CHEATSHEET.md`,
    `LAWS-AND-PROOFS.md`, `PROOF-COOKBOOK.md`, `ERROR-TAXONOMY.md`).
@@ -207,7 +207,7 @@ their expected output, and what not to do. Read the whole bead before starting.
    `~ skipped` for template binders). A `✗` means the statement is false: stop and comment.
 3. Prove it. While working, a `?goal` hole makes the checker print the goal; none may remain.
    `~/.bend/bin/bend packages/bend-mathlib/<module>.bend --check-only` must print exactly
-   `All terms check.`
+   `ALL PROOFS CHECK` followed by `Use --verdict for mathematical validity.`
 4. `bun tools/mathlib/lint.ts packages/bend-mathlib --erasure`: for each "can be erased" finding,
    change `for x:` to `for -x:` and re-check (PLAN F26).
 5. Regenerate: `bun tools/mathlib/twins.ts packages/bend-mathlib`, then

@@ -50,7 +50,7 @@ test("devlib run resolves 0x…/list.bend for an unpublished local package (real
   const hk = mkKernel(root);
   const pk = mkConsumer(root, hk);
   const r = run("devlib.ts", "--root", root, "run", "--", BEND, join(pk, "all.bend"), "--check-only");
-  expect(r.out).toContain("All terms check.");
+  expect(r.out).toContain("ALL PROOFS CHECK");
   expect(r.code).toBe(0);
 });
 
